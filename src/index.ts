@@ -1,7 +1,27 @@
 import "dotenv/config";
+import tls from "tls";
 import { Command } from "commander";
 import * as fs from "fs";
 import * as path from "path";
+
+// Chrome-like TLS fingerprint to bypass DDoS-Guard JA3 detection
+tls.DEFAULT_CIPHERS = [
+  "TLS_AES_128_GCM_SHA256",
+  "TLS_AES_256_GCM_SHA384",
+  "TLS_CHACHA20_POLY1305_SHA256",
+  "ECDHE-ECDSA-AES128-GCM-SHA256",
+  "ECDHE-RSA-AES128-GCM-SHA256",
+  "ECDHE-ECDSA-AES256-GCM-SHA384",
+  "ECDHE-RSA-AES256-GCM-SHA384",
+  "ECDHE-ECDSA-CHACHA20-POLY1305",
+  "ECDHE-RSA-CHACHA20-POLY1305",
+  "ECDHE-RSA-AES128-SHA",
+  "ECDHE-RSA-AES256-SHA",
+  "AES128-GCM-SHA256",
+  "AES256-GCM-SHA384",
+  "AES128-SHA",
+  "AES256-SHA",
+].join(":");
 import { login } from "./auth";
 import { parseForumSection } from "./forum";
 import { parseTopic } from "./topic";
@@ -23,6 +43,7 @@ program
     "all"
   )
   .option("--output <dir>", "Папка вывода", "./output")
+  .option("--proxy <url>", "Прокси (http/https/socks5)", process.env.HTTPS_PROXY)
   .parse();
 
 const opts = program.opts();
@@ -36,8 +57,8 @@ async function main() {
   const outputDir = path.resolve(opts.output);
   fs.mkdirSync(outputDir, { recursive: true });
 
-  const cookie = await login(opts.login, opts.password);
-  const client = createHttpClient(cookie);
+  const cookie = await login(opts.login, opts.password, opts.proxy);
+  const client = createHttpClient(cookie, opts.proxy);
 
   const sections = resolveSections(opts.sections);
   log(`Разделов для парсинга: ${sections.length}`);

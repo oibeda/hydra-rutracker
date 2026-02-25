@@ -1,12 +1,13 @@
 import axios from "axios";
 import * as cheerio from "cheerio";
 import * as readline from "readline";
+import { ProxyAgent } from "proxy-agent";
 import { decode } from "windows-1251";
 import { BASE_URL } from "./config";
 import { log } from "./utils";
 
 const UA =
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
 
 function prompt(question: string): Promise<string> {
   const rl = readline.createInterface({
@@ -23,15 +24,38 @@ function prompt(question: string): Promise<string> {
 
 export async function login(
   username: string,
-  password: string
+  password: string,
+  proxyUrl?: string
 ): Promise<string> {
   log("Авторизация на rutracker.org...");
 
+  const agentOpts: Record<string, any> = {};
+  if (proxyUrl) {
+    const agent = new ProxyAgent({ getProxyForUrl: () => proxyUrl });
+    agentOpts.httpAgent = agent;
+    agentOpts.httpsAgent = agent;
+    log(`Используется прокси: ${proxyUrl}`);
+  }
+
+  const commonHeaders = {
+    "User-Agent": UA,
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+    "Accept-Language": "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Connection": "keep-alive",
+    "Upgrade-Insecure-Requests": "1",
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "same-origin",
+    "Sec-Fetch-User": "?1",
+  };
+
   // Step 1: GET login page to check for CAPTCHA
   const getResp = await axios.get(`${BASE_URL}/login.php`, {
-    headers: { "User-Agent": UA },
+    headers: commonHeaders,
     responseType: "arraybuffer",
     validateStatus: () => true,
+    ...agentOpts,
   });
 
   const loginHtml = decode(Buffer.from(getResp.data));
@@ -58,11 +82,14 @@ export async function login(
   // Step 2: POST login
   const response = await axios.post(`${BASE_URL}/login.php`, body, {
     headers: {
+      ...commonHeaders,
       "Content-Type": "application/x-www-form-urlencoded",
-      "User-Agent": UA,
+      "Referer": `${BASE_URL}/login.php`,
+      "Origin": BASE_URL,
     },
     maxRedirects: 0,
     validateStatus: () => true,
+    ...agentOpts,
   });
 
   const setCookies = response.headers["set-cookie"];

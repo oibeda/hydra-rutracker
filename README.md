@@ -21,13 +21,17 @@ npx tsx src/index.ts --login user --password pass --sections 2203,960
 
 # С указанием папки вывода
 npx tsx src/index.ts --login user --password pass --sections all --output ./data
+
+# Через прокси (http, https, socks5)
+npx tsx src/index.ts --login user --password pass --proxy socks5://127.0.0.1:1080
 ```
 
-Логин и пароль можно задать через `.env`:
+Логин и пароль можно задать через `.env`. Прокси также можно задать через переменную окружения:
 
 ```
 RUTRACKER_LOGIN=user
 RUTRACKER_PASSWORD=pass
+HTTPS_PROXY=socks5://127.0.0.1:1080
 ```
 
 При авторизации может потребоваться ввод CAPTCHA — ссылка на картинку будет выведена в консоль.
