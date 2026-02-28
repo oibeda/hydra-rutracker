@@ -4,7 +4,15 @@ JSON-парсер раздач с rutracker.org для [Hydra Launcher](https://
 
 Парсит подразделы рубрики "Игры для Windows", генерирует JSON-файлы с метаданными торрентов (название, magnet-ссылки, дата загрузки, размер файла).
 
-## Установка
+## Быстрый старт (без Node.js)
+
+Скачайте готовый `rutracker-parser.exe` из [Releases](https://github.com/oibeda/hydra-rutracker/releases) — Node.js не требуется.
+
+```bash
+rutracker-parser.exe --login user --password pass --sections all
+```
+
+## Установка из исходников
 
 ```bash
 npm install
@@ -25,6 +33,14 @@ npx tsx src/index.ts --login user --password pass --sections all --output ./data
 # Через прокси (http, https, socks5)
 npx tsx src/index.ts --login user --password pass --proxy socks5://127.0.0.1:1080
 ```
+
+## Сборка exe
+
+```bash
+npm run package
+```
+
+Создаёт `rutracker-parser.exe` (~45 MB) — standalone-бинарник для Windows x64, Node.js не нужен.
 
 Логин и пароль можно задать через `.env`. Прокси также можно задать через переменную окружения:
 
