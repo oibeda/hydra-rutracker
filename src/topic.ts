@@ -21,8 +21,10 @@ export async function parseTopic(
   const fileSize = extractFileSize($);
   const uploadDate = extractUploadDate($);
 
+  const title = topicTitle.length > 247 ? topicTitle.substring(0, 247) + "..." : topicTitle;
+
   return {
-    title: topicTitle,
+    title,
     uris: [magnetLink],
     uploadDate,
     fileSize,
