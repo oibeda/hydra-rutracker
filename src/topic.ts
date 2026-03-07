@@ -11,12 +11,13 @@ export async function parseTopic(
   const html = await fetchPage(client, `/viewtopic.php?t=${topicId}`);
   const $ = cheerio.load(html);
 
-  const magnetLink = $("a.magnet-link").attr("href") || "";
-  if (!magnetLink || !magnetLink.startsWith("magnet:?")) {
+  const rawMagnet = $("a.magnet-link").attr("href") || "";
+  if (!rawMagnet || !rawMagnet.startsWith("magnet:?")) {
     console.warn(`  [!] Тема ${topicId}: magnet-ссылка не найдена, пропуск.`);
     return null;
   }
 
+  const magnetLink = normalizeTrackers(rawMagnet);
   const fileSize = extractFileSize($);
   const uploadDate = extractUploadDate($);
 
@@ -27,6 +28,20 @@ export async function parseTopic(
     fileSize,
     repackLinkSource: `https://rutracker.org/forum/viewtopic.php?t=${topicId}`,
   };
+}
+
+const RUTRACKER_TRACKERS = [
+  "http%3A%2F%2Fbt.t-ru.org%2Fann%3Fmagnet",
+  "http%3A%2F%2Fbt2.t-ru.org%2Fann%3Fmagnet",
+  "http%3A%2F%2Fbt3.t-ru.org%2Fann%3Fmagnet",
+  "http%3A%2F%2Fbt4.t-ru.org%2Fann%3Fmagnet",
+];
+
+function normalizeTrackers(magnet: string): string {
+  const hashMatch = magnet.match(/btih:([A-Fa-f0-9]+)/i);
+  if (!hashMatch) return magnet;
+  const hash = hashMatch[1].toUpperCase();
+  return `magnet:?xt=urn:btih:${hash}${RUTRACKER_TRACKERS.map((t) => `&tr=${t}`).join("")}`;
 }
 
 function extractFileSize($: cheerio.CheerioAPI): string {
@@ -49,7 +64,7 @@ function extractFileSize($: cheerio.CheerioAPI): string {
     return `${fallbackMatch[1].replace(",", ".")} ${normalizeSizeUnit(fallbackMatch[2])}`;
   }
 
-  return "N/A";
+  return "0 MB";
 }
 
 function normalizeSizeUnit(unit: string): string {
@@ -80,7 +95,7 @@ function extractUploadDate($: cheerio.CheerioAPI): string {
     if (parsed) return parsed;
   }
 
-  return new Date().toISOString();
+  return new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
 }
 
 function parseRuDate(text: string): string | null {
@@ -103,7 +118,7 @@ function parseRuDate(text: string): string | null {
 
     if (month !== undefined) {
       const date = new Date(Date.UTC(year, month, day, hours, minutes, 0));
-      return date.toISOString();
+      return date.toISOString().replace(/\.\d{3}Z$/, "Z");
     }
   }
 
